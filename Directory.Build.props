@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <Version>5.1.3</Version>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <DebugType>full</DebugType>
+    <Description>Simplifies logging through a static helper class and some IL manipulation.</Description>
+    <PackageTags>Logging, ILWeaving, Fody, Cecil</PackageTags>
+    <AssemblyOriginatorKeyFile>$(SolutionDir)key.snk</AssemblyOriginatorKeyFile>
+    <NoWarn>NU5118</NoWarn>
+    <PackageOutputPath>$(SolutionDir)nugets</PackageOutputPath>
+    <PackageIconUrl>https://raw.githubusercontent.com/Fody/Anotar/master/package_icon.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/Fody/Anotar</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+</Project>

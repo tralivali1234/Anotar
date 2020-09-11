@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net472;netcoreapp2.2</TargetFrameworks>
+    <DisableFody>true</DisableFody>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Catel.Core" Version="5.12.8" />
+    <PackageReference Include="FodyHelpers" Version="6.2.5" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="Xunit" Version="2.4.1" />
+    <PackageReference Include="Verify.Xunit" Version="6.11.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <Reference Include="Microsoft.CSharp" />
+    <ProjectReference Include="..\Anotar.Catel.Fody\Anotar.Catel.Fody.csproj" />
+    <ProjectReference Include="..\Anotar.Catel\Anotar.Catel.csproj" />
+    <ProjectReference Include="..\AssemblyToProcess\AssemblyToProcess.csproj" />
+  </ItemGroup>
+</Project>

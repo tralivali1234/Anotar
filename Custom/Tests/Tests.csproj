@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net472;netcoreapp2.2</TargetFrameworks>
+    <DisableFody>true</DisableFody>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FodyHelpers" Version="6.2.5" />
+    <PackageReference Include="Xunit" Version="2.4.1" />
+    <PackageReference Include="Verify.Xunit" Version="6.11.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <ProjectReference Include="..\Anotar.Custom.Fody\Anotar.Custom.Fody.csproj" />
+    <ProjectReference Include="..\Anotar.Custom\Anotar.Custom.csproj" />
+    <ProjectReference Include="..\AssemblyToProcess\AssemblyToProcess.csproj" />
+    <ProjectReference Include="..\AssemblyWithLogger\AssemblyWithLogger.csproj" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+</Project>

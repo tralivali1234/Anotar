@@ -1,11 +1,8 @@
 using System;
 using System.Reflection;
-using Scalpel;
 
-[Remove]
 public static class AppDomainAssemblyFinder
 {
-
     public static void Attach()
     {
         AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
@@ -13,9 +10,11 @@ public static class AppDomainAssemblyFinder
 
     static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
     {
+        var unqualifiedName = args.Name.Substring(0, args.Name.IndexOf(","));
+
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            if (assembly.FullName == args.Name)
+            if (assembly.FullName.StartsWith(unqualifiedName + ","))
             {
                 return assembly;
             }

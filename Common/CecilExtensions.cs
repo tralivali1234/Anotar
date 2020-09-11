@@ -1,11 +1,37 @@
 using System.Collections.Generic;
 using System.Linq;
+using Fody;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 using Mono.Collections.Generic;
 
 public static class CecilExtensions
 {
+    public static MethodReference MakeHostInstanceGeneric(
+        this MethodReference self,
+        params TypeReference[] args)
+    {
+        var reference = new MethodReference(
+            self.Name,
+            self.ReturnType,
+            self.DeclaringType.MakeGenericInstanceType(args))
+        {
+            HasThis = self.HasThis,
+            ExplicitThis = self.ExplicitThis,
+            CallingConvention = self.CallingConvention
+        };
+
+        foreach (var parameter in self.Parameters) {
+            reference.Parameters.Add(new ParameterDefinition(parameter.ParameterType));
+        }
+
+        foreach (var genericParam in self.GenericParameters) {
+            reference.GenericParameters.Add(new GenericParameter(genericParam.Name, reference));
+        }
+
+        return reference;
+    }
     public static void Replace(this Collection<Instruction> collection, Instruction instruction, ICollection<Instruction> instructions)
     {
         var newInstruction = instructions.First();
@@ -19,6 +45,7 @@ public static class CecilExtensions
             indexOf++;
         }
     }
+
     public static void Append(this List<Instruction> collection, params Instruction[] instructions)
     {
         collection.AddRange(instructions);
@@ -33,8 +60,7 @@ public static class CecilExtensions
 
     public static string DisplayName(this TypeReference typeReference)
     {
-        var genericInstanceType = typeReference as GenericInstanceType;
-        if (genericInstanceType != null && genericInstanceType.HasGenericArguments)
+        if (typeReference is GenericInstanceType genericInstanceType && genericInstanceType.HasGenericArguments)
         {
             return typeReference.Name.Split('`').First() + "<" + string.Join(", ", genericInstanceType.GenericArguments.Select(c => c.DisplayName())) + ">";
         }
@@ -51,11 +77,11 @@ public static class CecilExtensions
             {
                 foreach (var parentClassMethod in rootType.Methods)
                 {
-                    if (method.DeclaringType.Name.Contains("<" + parentClassMethod.Name + ">"))
+                    if (method.DeclaringType.Name.Contains($"<{parentClassMethod.Name}>"))
                     {
                         return parentClassMethod;
                     }
-                    if (method.Name.StartsWith("<" + parentClassMethod.Name + ">"))
+                    if (method.Name.StartsWith($"<{parentClassMethod.Name}>"))
                     {
                         return parentClassMethod;
                     }
@@ -68,7 +94,7 @@ public static class CecilExtensions
         {
             foreach (var parentClassMethod in method.DeclaringType.Methods)
             {
-                if (method.Name.StartsWith("<" + parentClassMethod.Name + ">"))
+                if (method.Name.StartsWith($"<{parentClassMethod.Name}>"))
                 {
                     return parentClassMethod;
                 }
@@ -91,18 +117,17 @@ public static class CecilExtensions
         return value.CustomAttributes.Any(a => a.AttributeType.Name == "CompilerGeneratedAttribute");
     }
 
-    public static bool IsCompilerGenerated(this TypeDefinition typeDefinition)
+    public static bool IsCompilerGenerated(this TypeDefinition type)
     {
-        return typeDefinition.CustomAttributes.Any(a => a.AttributeType.Name == "CompilerGeneratedAttribute") ||
-            (typeDefinition.IsNested && typeDefinition.DeclaringType.IsCompilerGenerated());
+        return type.CustomAttributes.Any(a => a.AttributeType.Name == "CompilerGeneratedAttribute") ||
+            type.IsNested && type.DeclaringType.IsCompilerGenerated();
     }
 
     public static void CheckForInvalidLogToUsages(this MethodDefinition methodDefinition)
     {
         foreach (var instruction in methodDefinition.Body.Instructions)
         {
-            var methodReference = instruction.Operand as MethodReference;
-            if (methodReference != null)
+            if (instruction.Operand is MethodReference methodReference)
             {
                 var declaringType = methodReference.DeclaringType;
                 if (declaringType.Name != "LogTo")
@@ -120,14 +145,15 @@ public static class CecilExtensions
                     throw new WeavingException(message);
                 }
             }
-            var typeReference = instruction.Operand as TypeReference;
-            if (typeReference != null)
+
+            if (instruction.Operand is TypeReference typeReference)
             {
                 if (typeReference.Name != "LogTo")
                 {
                     continue;
                 }
-                if (typeReference.Namespace == null || !typeReference.Namespace.StartsWith("Anotar"))
+                if (typeReference.Namespace == null ||
+                    !typeReference.Namespace.StartsWith("Anotar"))
                 {
                     continue;
                 }
@@ -141,7 +167,7 @@ public static class CecilExtensions
         }
     }
 
-    public static MethodDefinition GetStaticConstructor(this TypeDefinition type)
+    public static MethodDefinition GetStaticConstructor(this BaseModuleWeaver weaver, TypeDefinition type)
     {
         var staticConstructor = type.Methods.FirstOrDefault(x => x.IsConstructor && x.IsStatic);
         if (staticConstructor == null)
@@ -151,7 +177,7 @@ public static class CecilExtensions
                                                 | MethodAttributes.RTSpecialName
                                                 | MethodAttributes.HideBySig
                                                 | MethodAttributes.Private;
-            staticConstructor = new MethodDefinition(".cctor", attributes, type.Module.TypeSystem.Void);
+            staticConstructor = new MethodDefinition(".cctor", attributes, weaver.TypeSystem.VoidReference);
 
             staticConstructor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
             type.Methods.Add(staticConstructor);
@@ -167,7 +193,6 @@ public static class CecilExtensions
             processor.InsertBefore(target, instruction);
         }
     }
-
 
     public static bool IsBasicLogCall(this Instruction instruction)
     {
@@ -232,7 +257,7 @@ public static class CecilExtensions
             var sequencePoint = method.DebugInformation.GetSequencePoint(instruction);
             if (sequencePoint != null)
             {
-                // not a hiddent line http://blogs.msdn.com/b/jmstall/archive/2005/06/19/feefee-sequencepoints.aspx
+                // not a hidden line http://blogs.msdn.com/b/jmstall/archive/2005/06/19/feefee-sequencepoints.aspx
                 if (sequencePoint.StartLine != 0xFeeFee)
                 {
                     lineNumber = sequencePoint.StartLine;
@@ -247,7 +272,6 @@ public static class CecilExtensions
                 return false;
             }
         }
-
     }
 
     public static bool ContainsAttribute(this Collection<CustomAttribute> attributes, string attributeName)
@@ -274,6 +298,7 @@ public static class CecilExtensions
         }
         return firstOrDefault;
     }
+
     public static MethodDefinition FindGenericMethod(this TypeDefinition typeDefinition, string method, params string[] paramTypes)
     {
         var firstOrDefault = typeDefinition.Methods
